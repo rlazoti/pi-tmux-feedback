@@ -12,7 +12,7 @@ When pi generates a long answer, you can scroll up, highlight the exact passage 
 ## Install
 
 ```bash
-pi install git:github.com/rlazoti/pi-tmux-feedback
+pi install https://github.com/rlazoti/pi-tmux-feedback
 ```
 
 Then install the tmux keybinding (run once inside pi):
