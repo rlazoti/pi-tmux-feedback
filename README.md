@@ -15,6 +15,12 @@ When pi generates a long answer, you can scroll up, highlight the exact passage 
 pi install https://github.com/rlazoti/pi-tmux-feedback
 ```
 
+To uninstall:
+
+```bash
+pi remove https://github.com/rlazoti/pi-tmux-feedback
+```
+
 Then install the tmux keybinding (run once inside pi):
 
 ```
