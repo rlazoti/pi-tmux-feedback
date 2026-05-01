@@ -1,0 +1,29 @@
+{
+  "name": "pi-tmux-feedback",
+  "version": "1.0.0",
+  "description": "Inline feedback for pi coding agent — select text in tmux scrollback and annotate it",
+  "keywords": [
+    "pi-package",
+    "pi",
+    "tmux",
+    "feedback",
+    "code-review",
+    "inline-feedback"
+  ],
+  "license": "MIT",
+  "author": "Rodrigo Lazoti",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rlazoti/pi-tmux-feedback.git"
+  },
+  "homepage": "https://github.com/rlazoti/pi-tmux-feedback",
+  "bugs": {
+    "url": "https://github.com/rlazoti/pi-tmux-feedback/issues"
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": ["./extensions"]
+  }
+}
