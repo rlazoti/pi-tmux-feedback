@@ -21,6 +21,16 @@ To uninstall:
 pi remove https://github.com/rlazoti/pi-tmux-feedback
 ```
 
+## Update
+
+Git-package users can update the extension explicitly through Pi:
+
+```bash
+pi update https://github.com/rlazoti/pi-tmux-feedback
+```
+
+Restart Pi after updating.
+
 Then install the tmux keybinding (run once inside pi):
 
 ```
