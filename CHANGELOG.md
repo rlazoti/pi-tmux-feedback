@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `/feedback-list` now manages individual queued notes through explicit edit and confirmed-remove actions.
+- Feedback edits preserve captured quotes, IDs, timestamps, queue order, and branch-aware session snapshots.
+- Individually removed note IDs are not reused before the queue is sent or cleared.
+- Added automated coverage for snapshot normalization and note-management interactions.
+
 ## 1.0.0 (2026-05-01)
 
 Initial release.

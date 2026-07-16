@@ -42,7 +42,8 @@ bind-key -T copy-mode-vi Y send-keys -X copy-selection-and-cancel \; send-keys C
 3. **Press `Y`** — the tmux binding copies your selection, exits copy-mode, clears any partial input, and runs `/feedback-capture`.
 4. **Annotate** — an editor opens with the quoted text. Type your feedback and submit.
 5. **Repeat** — go back to step 1 for more notes. Each one is queued.
-6. **Send** — run `/feedback-send` to deliver all queued notes to the assistant as a single message.
+6. **Manage (optional)** — run `/feedback-list` to select a queued note, edit its annotation, or remove it after confirmation.
+7. **Send** — run `/feedback-send` to deliver all remaining queued notes to the assistant as a single message.
 
 The status bar shows `tmux feedback N` while you have notes queued.
 
@@ -52,7 +53,7 @@ The status bar shows `tmux feedback N` while you have notes queued.
 |---|---|
 | `/feedback-capture` | Read the latest tmux buffer and queue feedback for it |
 | `/feedback-send` | Send all queued feedback to the assistant |
-| `/feedback-list` | Review queued feedback notes in an editor |
+| `/feedback-list` | Select a queued note to edit its feedback or remove it |
 | `/feedback-clear` | Discard all queued feedback (with confirmation) |
 | `/feedback-install-tmux-binding` | Install the `Y` binding in the running tmux server |
 | `/feedback-help` | Show workflow help and caveats |

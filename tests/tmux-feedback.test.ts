@@ -60,7 +60,10 @@ const chooseFirstNote: SelectStep = ({ options }) => options.find((option) => op
 
 function createHarness(initialNotes: FeedbackNote[], initialNextId: number) {
   const eventHandlers = new Map<string, (event: unknown, ctx: any) => unknown>();
-  const commands = new Map<string, { handler: (args: string, ctx: any) => unknown }>();
+  const commands = new Map<
+    string,
+    { description?: string; handler: (args: string, ctx: any) => unknown }
+  >();
   const branch: unknown[] = [snapshotEntry(initialNotes, initialNextId)];
   const appendedEntries: ReturnType<typeof snapshotEntry>[] = [];
   const notifications: Notification[] = [];
@@ -103,8 +106,10 @@ function createHarness(initialNotes: FeedbackNote[], initialNextId: number) {
 
   const pi = {
     on: (event: string, handler: (event: unknown, context: any) => unknown) => eventHandlers.set(event, handler),
-    registerCommand: (name: string, command: { handler: (args: string, context: any) => unknown }) =>
-      commands.set(name, command),
+    registerCommand: (
+      name: string,
+      command: { description?: string; handler: (args: string, context: any) => unknown },
+    ) => commands.set(name, command),
     appendEntry: (customType: string, data: any) => {
       const entry = { type: "custom", customType, data } as ReturnType<typeof snapshotEntry>;
       appendedEntries.push(entry);
@@ -131,6 +136,7 @@ function createHarness(initialNotes: FeedbackNote[], initialNextId: number) {
     editorSteps,
     confirmSteps,
     start: () => invokeEvent("session_start"),
+    commandDescription: (name: string) => commands.get(name)?.description,
     list: async () => {
       const command = commands.get("feedback-list");
       assert.ok(command, "expected feedback-list command");
@@ -151,6 +157,12 @@ function createHarness(initialNotes: FeedbackNote[], initialNextId: number) {
 function warnings(harness: ReturnType<typeof createHarness>): Notification[] {
   return harness.notifications.filter(({ type }) => type === "warning");
 }
+
+test("feedback-list command advertises individual note management", () => {
+  const harness = createHarness([], 1);
+
+  assert.equal(harness.commandDescription("feedback-list"), "Edit or remove queued tmux feedback notes");
+});
 
 test("edits one note while preserving immutable fields, order, and nextId", async () => {
   const first = note(1, "original");

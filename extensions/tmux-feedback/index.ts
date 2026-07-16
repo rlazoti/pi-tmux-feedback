@@ -169,7 +169,7 @@ function feedbackHelpText(): string {
     "Commands",
     "- /feedback-capture: read the latest tmux buffer and queue feedback for it.",
     "- /feedback-send: send all queued feedback to the assistant.",
-    "- /feedback-list: review queued feedback notes.",
+    "- /feedback-list: select a queued note to edit its feedback or remove it.",
     "- /feedback-clear: discard queued feedback notes.",
     "- /feedback-install-tmux-binding: install the Y binding in the current tmux server.",
     "- /feedback-help: show this help.",
@@ -468,7 +468,7 @@ export default function tmuxFeedback(pi: ExtensionAPI) {
   });
 
   pi.registerCommand("feedback-list", {
-    description: "Show queued tmux feedback notes",
+    description: "Edit or remove queued tmux feedback notes",
     handler: async (_args, ctx) => listFeedback(ctx),
   });
 
