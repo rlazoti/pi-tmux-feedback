@@ -3,6 +3,11 @@ import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-age
 const CUSTOM_TYPE = "tmux-feedback";
 const STATUS_KEY = "tmux-feedback";
 const MAX_QUOTE_TITLE_CHARS = 72;
+const MAX_NOTE_FEEDBACK_SNIPPET_CHARS = 40;
+const MAX_NOTE_QUOTE_SNIPPET_CHARS = 48;
+const EDIT_FEEDBACK_ACTION = "Edit feedback";
+const REMOVE_NOTE_ACTION = "Remove note";
+const BACK_ACTION = "Back";
 const TMUX_CAPTURE_COMMAND = "/feedback-capture";
 const TMUX_FEEDBACK_BINDING = `send-keys -X copy-selection-and-cancel; send-keys C-c; send-keys -l ${TMUX_CAPTURE_COMMAND}; send-keys Enter`;
 
@@ -119,23 +124,27 @@ export function buildFeedbackMessage(notes: readonly FeedbackNote[]): string {
   return lines.join("\n").trimEnd();
 }
 
-function formatNotesForDisplay(notes: readonly FeedbackNote[]): string {
-  if (notes.length === 0) return "No queued tmux feedback.";
+function normalizeEditableFeedback(text: string): string {
+  return text.replace(/\r\n?/g, "\n").trim();
+}
 
-  return notes
-    .map((note, index) => {
-      return [
-        `Feedback ${index + 1} / note #${note.id}`,
-        `Created: ${note.createdAt}`,
-        "",
-        "Quoted selection:",
-        quoteBlock(note.quote),
-        "",
-        "Feedback:",
-        note.feedback.trim(),
-      ].join("\n");
-    })
-    .join("\n\n---\n\n");
+function notesMatch(left: FeedbackNote, right: FeedbackNote): boolean {
+  return (
+    left.id === right.id &&
+    left.quote === right.quote &&
+    left.feedback === right.feedback &&
+    left.createdAt === right.createdAt
+  );
+}
+
+function formatNoteOption(note: FeedbackNote): string {
+  const feedback = truncate(singleLineSnippet(note.feedback), MAX_NOTE_FEEDBACK_SNIPPET_CHARS);
+  const quote = truncate(singleLineSnippet(note.quote), MAX_NOTE_QUOTE_SNIPPET_CHARS);
+  return `#${note.id} · ${feedback} — “${quote}”`;
+}
+
+function noteActionTitle(note: FeedbackNote): string {
+  return `Tmux feedback #${note.id}: ${truncate(singleLineSnippet(note.quote), MAX_QUOTE_TITLE_CHARS)}`;
 }
 
 function tmuxBindingCommands(): string[][] {
@@ -304,12 +313,96 @@ export default function tmuxFeedback(pi: ExtensionAPI) {
 
     reconstructState(ctx);
 
-    if (notes.length === 0) {
-      notify(ctx, "No queued tmux feedback", "info");
-      return;
-    }
+    while (true) {
+      if (notes.length === 0) {
+        notify(ctx, "No queued tmux feedback", "info");
+        return;
+      }
 
-    await ctx.ui.editor("Queued tmux feedback (close without submitting)", formatNotesForDisplay(notes));
+      const optionToId = new Map(notes.map((note) => [formatNoteOption(note), note.id]));
+      const selectedOption = await ctx.ui.select("Queued tmux feedback", [...optionToId.keys()]);
+      if (selectedOption === undefined) return;
+
+      const selectedId = optionToId.get(selectedOption);
+      const selectedNote = notes.find((note) => note.id === selectedId);
+      if (!selectedNote) {
+        notify(ctx, "Selected tmux feedback is no longer available", "warning");
+        continue;
+      }
+
+      const selectedSnapshot = { ...selectedNote };
+
+      while (true) {
+        const currentNote = notes.find((note) => note.id === selectedSnapshot.id);
+        if (!currentNote || !notesMatch(currentNote, selectedSnapshot)) {
+          notify(ctx, `Tmux feedback #${selectedSnapshot.id} changed. Reopen it and try again.`, "warning");
+          break;
+        }
+
+        const action = await ctx.ui.select(noteActionTitle(currentNote), [
+          EDIT_FEEDBACK_ACTION,
+          REMOVE_NOTE_ACTION,
+          BACK_ACTION,
+        ]);
+        if (action === undefined || action === BACK_ACTION) break;
+
+        if (action === EDIT_FEEDBACK_ACTION) {
+          const original = { ...currentNote };
+          const editedFeedback = await ctx.ui.editor(
+            `${EDIT_FEEDBACK_ACTION} for tmux feedback #${original.id}: ${truncate(singleLineSnippet(original.quote), MAX_QUOTE_TITLE_CHARS)}`,
+            original.feedback,
+          );
+          if (editedFeedback === undefined) {
+            notify(ctx, "Feedback edit cancelled", "info");
+            break;
+          }
+
+          const normalizedFeedback = normalizeEditableFeedback(editedFeedback);
+          if (!normalizedFeedback) {
+            notify(ctx, "Feedback edit cancelled", "info");
+            break;
+          }
+          if (normalizedFeedback === normalizeEditableFeedback(original.feedback)) break;
+
+          const noteIndex = notes.findIndex(
+            (note) => note.id === original.id && notesMatch(note, original),
+          );
+          if (noteIndex === -1) {
+            notify(ctx, `Tmux feedback #${original.id} changed. Reopen it and try again.`, "warning");
+            break;
+          }
+
+          notes = notes.map((note, index) =>
+            index === noteIndex ? { ...note, feedback: normalizedFeedback } : note,
+          );
+          appendSnapshot(ctx);
+          notify(ctx, `Updated tmux feedback #${original.id}`, "info");
+          break;
+        }
+
+        if (action === REMOVE_NOTE_ACTION) {
+          const original = { ...currentNote };
+          const confirmed = await ctx.ui.confirm(
+            `Remove tmux feedback #${original.id}?`,
+            `Remove the note for “${truncate(singleLineSnippet(original.quote), MAX_NOTE_QUOTE_SNIPPET_CHARS)}”?`,
+          );
+          if (!confirmed) continue;
+
+          const noteIndex = notes.findIndex(
+            (note) => note.id === original.id && notesMatch(note, original),
+          );
+          if (noteIndex === -1) {
+            notify(ctx, `Tmux feedback #${original.id} changed. Reopen it and try again.`, "warning");
+            break;
+          }
+
+          notes = notes.filter((_note, index) => index !== noteIndex);
+          appendSnapshot(ctx);
+          notify(ctx, `Removed tmux feedback #${original.id}`, "info");
+          break;
+        }
+      }
+    }
   };
 
   const clearFeedback = async (ctx: ExtensionContext) => {
