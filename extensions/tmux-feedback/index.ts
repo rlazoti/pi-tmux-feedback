@@ -32,7 +32,8 @@ function isFeedbackNote(value: unknown): value is FeedbackNote {
   return (
     isRecord(value) &&
     typeof value.id === "number" &&
-    Number.isFinite(value.id) &&
+    Number.isInteger(value.id) &&
+    value.id > 0 &&
     typeof value.quote === "string" &&
     typeof value.feedback === "string" &&
     typeof value.createdAt === "string"
@@ -46,13 +47,22 @@ function cloneNotes(notes: readonly FeedbackNote[]): FeedbackNote[] {
 function normalizeSnapshot(data: unknown): FeedbackState | undefined {
   if (!isRecord(data) || data.action !== "snapshot" || !Array.isArray(data.notes)) return undefined;
 
-  const notes = data.notes.filter(isFeedbackNote).map((note) => ({ ...note }));
+  const notes: FeedbackNote[] = [];
+  const seenIds = new Set<number>();
+
+  for (const value of data.notes) {
+    if (!isFeedbackNote(value) || seenIds.has(value.id)) continue;
+    seenIds.add(value.id);
+    notes.push({ ...value });
+  }
+
   const highestId = notes.reduce((max, note) => Math.max(max, note.id), 0);
-  const requestedNextId = typeof data.nextId === "number" && Number.isFinite(data.nextId) ? Math.floor(data.nextId) : 1;
+  const requestedNextId =
+    typeof data.nextId === "number" && Number.isInteger(data.nextId) && data.nextId > 0 ? data.nextId : 1;
 
   return {
     notes,
-    nextId: Math.max(1, requestedNextId, highestId + 1),
+    nextId: Math.max(requestedNextId, highestId + 1),
   };
 }
 

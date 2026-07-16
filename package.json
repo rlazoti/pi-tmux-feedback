@@ -1,6 +1,10 @@
 {
   "name": "pi-tmux-feedback",
   "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test tests/*.test.ts"
+  },
   "description": "Inline feedback for pi coding agent — select text in tmux scrollback and annotate it",
   "keywords": [
     "pi-package",
